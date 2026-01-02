@@ -37,7 +37,7 @@ export default function Signup() {
       setLoading(true);
 
       const res = await axios.post(
-        'http://localhost:5000/api/auth/signup',
+        'https://finance-manager-backend-iyuj.onrender.com/api/auth/signup',
         {
           name: fullName.trim(),
           email: email.trim(),
