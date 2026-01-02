@@ -46,7 +46,7 @@ export default function DashboardHome() {
       }
 
       const response = await axios.get(
-        "http://localhost:5000/api/Transaction/get",
+        "https://finance-manager-backend-iyuj.onrender.com/api/Transaction/get",
         {
           headers: {
             Authorization: `Bearer ${token}`,
