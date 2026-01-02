@@ -143,7 +143,7 @@ export default function AddIncome({ visible, onClose, onSubmit, type = 'income' 
 
       // ✅ Backend API call
       const response = await axios.post(
-        'http://localhost:5000/api/Transaction/add', 
+        'https://finance-manager-backend-iyuj.onrender.com/api/Transaction/add', 
         {
           title: name.trim(),       
           amount: parseFloat(amount),
