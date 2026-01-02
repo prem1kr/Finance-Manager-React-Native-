@@ -135,7 +135,7 @@ export default function DashboardExpance() {
         return;
       }
 
-      const response = await axios.get("http://localhost:5000/api/Transaction/get", {
+      const response = await axios.get("https://finance-manager-backend-iyuj.onrender.com/api/Transaction/get", {
         headers: {
           Authorization: `Bearer ${token}`,
           "x-user-id": userId,
