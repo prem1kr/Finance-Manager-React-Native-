@@ -63,7 +63,7 @@ export default function Expense() {
       const token = await AsyncStorage.getItem('token');
 
       const response = await axios.get(
-        "http://localhost:5000/api/Transaction/get",
+        "https://finance-manager-backend-iyuj.onrender.com/api/Transaction/get",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -126,7 +126,7 @@ export default function Expense() {
               const token = await AsyncStorage.getItem("token");
 
               await axios.delete(
-                `http://localhost:5000/api/Transaction/delete/${id}`,
+                `https://finance-manager-backend-iyuj.onrender.com/api/Transaction/delete/${id}`,
                 {
                   headers: {
                     Authorization: `Bearer ${token}`,

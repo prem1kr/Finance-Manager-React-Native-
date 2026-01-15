@@ -72,7 +72,7 @@ export default function Income() {
       const token = await AsyncStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/Transaction/get",
+        "https://finance-manager-backend-iyuj.onrender.com/api/Transaction/get",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -117,6 +117,7 @@ export default function Income() {
 
   /* ---------------- CHART DATA ---------------- */
 
+<<<<<<< HEAD
   // Mobile (Gifted Charts)
   const mobileBarData = incomeData.slice(0, 5).map((item) => ({
     label: item.source,
@@ -125,6 +126,16 @@ export default function Income() {
       { value: Math.round(item.amount * 0.7), color: "#2563EB" },
     ],
   }));
+=======
+            const res = await axios.delete(
+              `https://finance-manager-backend-iyuj.onrender.com/api/Transaction/delete/${id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+>>>>>>> 18d42f0eca5eac8a0eee858dd3e7418909f4a50d
 
   // Web (Chart Kit)
   const webChartData = {

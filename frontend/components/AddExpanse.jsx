@@ -95,7 +95,7 @@ export default function AddExpense({ visible, onClose, onSubmit, type = 'expense
 
       // ✅ Backend API call - SAME as AddIncome
       const response = await axios.post(
-        'http://localhost:5000/api/Transaction/add', 
+        'https://finance-manager-backend-iyuj.onrender.com/api/Transaction/add', 
         {
           title: name.trim(),     
           amount: parseFloat(amount),

@@ -23,7 +23,7 @@ export default function Edit({ visible, data, onClose, onUpdated }) {
       const userId = await AsyncStorage.getItem("userId");
 
       await axios.put(
-        `http://localhost:5000/api/Transaction/edit/${data.id}`,
+        `https://finance-manager-backend-iyuj.onrender.com/api/Transaction/edit/${data.id}`,
         {
           title: form.title,
           amount: Number(form.amount),
