@@ -117,38 +117,37 @@ export default function Income() {
         onPress: async () => {
           try {
             const token = await AsyncStorage.getItem("token");
-            const userId = await AsyncStorage.getItem("userId");
 
             const res = await axios.delete(
-              `http://YOUR_IP:5000/api/Transaction/delete/${id}`,
+              `http://localhost:5000/api/Transaction/delete/${id}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
-                  "x-user-id": userId,
                 },
               }
             );
 
-            // ✅ Optimistic UI update
-            setIncomeData((prev) =>
-              prev.filter((item) => item.id !== id)
-            );
-
-            Alert.alert("Success", "Income deleted successfully");
+            if (res.status === 200) {
+              Alert.alert("Success", "Income deleted successfully");
+              fetchIncomeData();
+            }
           } catch (err) {
-            console.log("DELETE ERROR =>", err?.response?.data || err.message);
+            console.log("DELETE ERROR =>", err?.response?.data);
 
-            Alert.alert(
-              "Error",
-              err?.response?.data?.message || "Failed to delete income"
-            );
+            if (err?.response?.status === 404) {
+              Alert.alert(
+                "Not Found",
+                "Transaction not found or unauthorized"
+              );
+            } else {
+              Alert.alert("Error", "Failed to delete income");
+            }
           }
         },
       },
     ]
   );
 };
-
 
   // --- Add Income Callback ---
   const handleAddIncome = () => {
@@ -343,9 +342,9 @@ function IncomeCard({
         <Ionicons name="create-outline" size={20} color={text} />
       </TouchableOpacity>
 
-      {/* <TouchableOpacity onPress={onDelete} style={{ marginLeft: 10 }}>
+      <TouchableOpacity onPress={onDelete} style={{ marginLeft: 10 }}>
         <Ionicons name="trash-outline" size={20} color="#ef4444" />
-      </TouchableOpacity> */}
+      </TouchableOpacity>
     </View>
   );
 }
