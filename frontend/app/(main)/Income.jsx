@@ -65,7 +65,7 @@ export default function Income() {
       const token = await AsyncStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/Transaction/get",
+        "https://finance-manager-backend-iyuj.onrender.com/api/Transaction/get",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -119,7 +119,7 @@ export default function Income() {
             const token = await AsyncStorage.getItem("token");
 
             const res = await axios.delete(
-              `http://localhost:5000/api/Transaction/delete/${id}`,
+              `https://finance-manager-backend-iyuj.onrender.com/api/Transaction/delete/${id}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
