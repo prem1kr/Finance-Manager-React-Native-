@@ -16,7 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import BackButton from "../../components/BackButton.jsx";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/constants/ThemeContext.js";
-import { BarChart } from "react-native-chart-kit";
 import AddIncome from "../../components/AddIncome.jsx";
 import Edit from "../../components/Edit.jsx";
 
@@ -27,6 +26,16 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
 const screenWidth = Dimensions.get("window").width;
+
+/* ---------------- PLATFORM SAFE CHART IMPORT ---------------- */
+let ChartKitBarChart;
+let GiftedBarChart;
+
+if (Platform.OS === "web") {
+  ChartKitBarChart = require("react-native-chart-kit").BarChart;
+} else {
+  GiftedBarChart = require("react-native-gifted-charts").BarChart;
+}
 
 export default function Income() {
   const router = useRouter();
@@ -47,7 +56,6 @@ export default function Income() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // --- Edit Modal State ---
   const [editVisible, setEditVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -56,11 +64,10 @@ export default function Income() {
     setEditVisible(true);
   };
 
-  // --- Fetch Income ---
+  /* ---------------- FETCH DATA ---------------- */
   const fetchIncomeData = async () => {
     try {
       setLoading(true);
-
       const userId = await AsyncStorage.getItem("userId");
       const token = await AsyncStorage.getItem("token");
 
@@ -78,16 +85,20 @@ export default function Income() {
       const transformed = res.data.data.map((item) => ({
         id: item._id,
         source: item.title,
-        icon: (
-          <Ionicons name={item.icon || "wallet-outline"} size={22} color={accent} />
-        ),
         date: new Date(item.date).toLocaleDateString("en-IN"),
         amount: item.amount,
         type: item.type,
+        icon: (
+          <Ionicons
+            name={item.icon || "wallet-outline"}
+            size={22}
+            color={accent}
+          />
+        ),
       }));
 
       setIncomeData(transformed);
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Failed to fetch income data");
     } finally {
       setLoading(false);
@@ -104,130 +115,78 @@ export default function Income() {
     setRefreshing(false);
   };
 
-  // --- Delete Income ---
- const handleDeleteIncome = async (id) => {
-  Alert.alert(
-    "Delete Income",
-    "Are you sure you want to delete this record?",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const token = await AsyncStorage.getItem("token");
+  /* ---------------- CHART DATA ---------------- */
 
-            const res = await axios.delete(
-              `https://finance-manager-backend-iyuj.onrender.com/api/Transaction/delete/${id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
+  // Mobile (Gifted Charts)
+  const mobileBarData = incomeData.slice(0, 5).map((item) => ({
+    label: item.source,
+    stacks: [
+      { value: item.amount, color: accent },
+      { value: Math.round(item.amount * 0.7), color: "#2563EB" },
+    ],
+  }));
 
-            if (res.status === 200) {
-              Alert.alert("Success", "Income deleted successfully");
-              fetchIncomeData();
-            }
-          } catch (err) {
-            console.log("DELETE ERROR =>", err?.response?.data);
-
-            if (err?.response?.status === 404) {
-              Alert.alert(
-                "Not Found",
-                "Transaction not found or unauthorized"
-              );
-            } else {
-              Alert.alert("Error", "Failed to delete income");
-            }
-          }
-        },
-      },
-    ]
-  );
-};
-
-  // --- Add Income Callback ---
-  const handleAddIncome = () => {
-    setShowAddIncome(false);
-    fetchIncomeData();
+  // Web (Chart Kit)
+  const webChartData = {
+    labels: incomeData.slice(0, 5).map((i) => i.source),
+    datasets: [{ data: incomeData.slice(0, 5).map((i) => i.amount) }],
   };
 
-  // --- Chart Data ---
-  const chartData = {
-    labels: incomeData.slice(0, 7).map((i) => i.source.slice(0, 8) + "..."),
-    datasets: [{ data: incomeData.slice(0, 7).map((i) => i.amount) }],
-  };
-
-  const chartConfig = {
+  const webChartConfig = {
     backgroundGradientFrom: card,
     backgroundGradientTo: card,
     decimalPlaces: 0,
     color: () => accent,
     labelColor: () => subText,
-    barRadius: 8,
     propsForBackgroundLines: { stroke: divider },
   };
 
-  // --- PDF Export ---
+  /* ---------------- PDF EXPORT ---------------- */
   const handleDownloadIncomePDF = async () => {
-    if (!incomeData.length) {
-      Alert.alert("No Data", "No income records to export.");
-      return;
-    }
+    if (!incomeData.length) return;
 
     const rows = incomeData
       .map(
         (i, idx) => `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${i.source}</td>
-          <td>${i.date}</td>
-          <td>₹${i.amount}</td>
-          <td>${i.type}</td>
-        </tr>`
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${i.source}</td>
+        <td>${i.date}</td>
+        <td>₹${i.amount}</td>
+        <td>${i.type}</td>
+      </tr>`
       )
       .join("");
 
     const html = `
-      <html>
-      <body>
-        <h2 style="text-align:center;">Income Report</h2>
-        <table border="1" width="100%" cellspacing="0">
-          <tr>
-            <th>#</th><th>Source</th><th>Date</th><th>Amount</th><th>Type</th>
-          </tr>
-          ${rows}
-        </table>
-      </body>
-      </html>`;
+    <html>
+    <body>
+      <h2 style="text-align:center;">Income Report</h2>
+      <table border="1" width="100%">
+        <tr>
+          <th>#</th><th>Source</th><th>Date</th><th>Amount</th><th>Type</th>
+        </tr>
+        ${rows}
+      </table>
+    </body>
+    </html>`;
 
     const { uri } = await Print.printToFileAsync({ html });
-
     const pdfPath = FileSystem.documentDirectory + "Income_Report.pdf";
     await FileSystem.moveAsync({ from: uri, to: pdfPath });
 
-    if (Platform.OS === "web") {
-      const blob = await (await fetch(pdfPath)).blob();
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "Income_Report.pdf";
-      link.click();
-      return;
-    }
-
-    await Sharing.shareAsync(pdfPath);
+    Platform.OS === "web"
+      ? window.open(pdfPath)
+      : await Sharing.shareAsync(pdfPath);
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: bg }}>
+      <View style={{ flex: 1, justifyContent: "center", backgroundColor: bg }}>
         <ActivityIndicator size="large" color={accent} />
-        <Text style={{ color: text }}>Loading...</Text>
       </View>
     );
+  }
 
   return (
     <ScrollView
@@ -236,25 +195,45 @@ export default function Income() {
     >
       <BackButton onPress={() => router.back()} isDark={isDark} />
 
-      {/* Overview Panel */}
+      {/* ---------------- OVERVIEW ---------------- */}
       <View style={[styles.panel, { backgroundColor: card, borderColor: divider }]}>
         <Text style={[styles.title, { color: text }]}>Income Overview</Text>
 
-        <BarChart
-          data={chartData}
-          width={screenWidth * 0.9}
-          height={230}
-          chartConfig={chartConfig}
-          fromZero
-          style={{ borderRadius: 12 }}
-        />
+        {Platform.OS === "web" ? (
+          <ChartKitBarChart
+            data={webChartData}
+            width={screenWidth - 40}
+            height={260}
+            fromZero
+            chartConfig={webChartConfig}
+            style={{ borderRadius: 16 }}
+          />
+        ) : (
+          <GiftedBarChart
+            data={mobileBarData}
+            barWidth={26}
+            spacing={42}
+            noOfSections={5}
+            yAxisLabelPrefix="₹"
+            showValuesOnTopOfBars
+            valueTextStyle={{ color: text, fontSize: 11 }}
+            xAxisLabelTextStyle={{ color: subText, fontSize: 11 }}
+            rulesColor={divider}
+            backgroundColor={card}
+            roundedTop
+            isAnimated
+          />
+        )}
 
-        <TouchableOpacity style={styles.addIncomeBtn} onPress={() => setShowAddIncome(true)}>
+        <TouchableOpacity
+          style={styles.addIncomeBtn}
+          onPress={() => setShowAddIncome(true)}
+        >
           <Text style={styles.addIncomeText}>+ Add Income</Text>
         </TouchableOpacity>
       </View>
 
-      {/* List Panel */}
+      {/* ---------------- LIST ---------------- */}
       <View style={[styles.panel, { backgroundColor: card, borderColor: divider }]}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: text }]}>
@@ -267,52 +246,41 @@ export default function Income() {
           </TouchableOpacity>
         </View>
 
-        {incomeData.length === 0 ? (
-          <Text style={{ color: subText, textAlign: "center", padding: 30 }}>
-            No income records yet ✨
-          </Text>
-        ) : (
-          incomeData.map((item) => (
-            <IncomeCard
-              key={item.id}
-              {...item}
-              card={card}
-              text={text}
-              subText={subText}
-              divider={divider}
-              iconBg={iconBg}
-              amountColor={green}
-              onDelete={() => handleDeleteIncome(item.id)}
-              onEdit={() => openEdit(item)}
-            />
-          ))
-        )}
+        {incomeData.map((item) => (
+          <IncomeCard
+            key={item.id}
+            {...item}
+            card={card}
+            text={text}
+            subText={subText}
+            divider={divider}
+            iconBg={iconBg}
+            amountColor={green}
+            onEdit={() => openEdit(item)}
+          />
+        ))}
       </View>
 
-      {/* Add Income */}
       <AddIncome
         visible={showAddIncome}
         onClose={() => setShowAddIncome(false)}
-        onSubmit={handleAddIncome}
+        onSubmit={fetchIncomeData}
         type="income"
       />
 
-      {/* Edit Income */}
       {selectedItem && (
         <Edit
           visible={editVisible}
           data={selectedItem}
           onClose={() => setEditVisible(false)}
-          onUpdated={() => {
-            setEditVisible(false);
-            fetchIncomeData();
-          }}
+          onUpdated={fetchIncomeData}
         />
       )}
     </ScrollView>
   );
 }
 
+/* ---------------- CARD ---------------- */
 function IncomeCard({
   icon,
   source,
@@ -325,39 +293,27 @@ function IncomeCard({
   subText,
   divider,
   onEdit,
-  onDelete,
 }) {
   return (
     <View style={[incomeStyles.card, { backgroundColor: card, borderColor: divider }]}>
       <View style={[incomeStyles.iconCircle, { backgroundColor: iconBg }]}>{icon}</View>
-
       <View style={{ flex: 1 }}>
         <Text style={[incomeStyles.source, { color: text }]}>{source}</Text>
         <Text style={[incomeStyles.date, { color: subText }]}>{date}</Text>
       </View>
-
-      <Text style={[incomeStyles.amount, { color: amountColor }]}>+ ₹{amount}</Text>
-
+      <Text style={[incomeStyles.amount, { color: amountColor }]}>₹{amount}</Text>
       <TouchableOpacity onPress={onEdit}>
         <Ionicons name="create-outline" size={20} color={text} />
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={onDelete} style={{ marginLeft: 10 }}>
-        <Ionicons name="trash-outline" size={20} color="#ef4444" />
       </TouchableOpacity>
     </View>
   );
 }
 
+/* ---------------- STYLES ---------------- */
 const styles = StyleSheet.create({
-  panel: {
-    margin: 14,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
+  panel: { margin: 14, padding: 16, borderRadius: 16, borderWidth: 1 },
   title: { fontSize: 20, fontWeight: "bold" },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between" },
   addIncomeBtn: {
     position: "absolute",
     right: 16,
@@ -368,7 +324,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   addIncomeText: { color: "#fff", fontWeight: "bold" },
-  downloadBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
+  downloadBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
 });
 
 const incomeStyles = StyleSheet.create({
