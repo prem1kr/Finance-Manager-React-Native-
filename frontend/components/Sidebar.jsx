@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,22 +11,41 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/constants/ThemeContext";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Sidebar() {
   const { isDark, setIsDark } = useTheme();
   const router = useRouter();
-  const rotateAnim = new Animated.Value(isDark ? 1 : 0);
 
-  const Logout = async() => {
-      try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('userId');
-      router.replace('/(auth)/Login');
-    } catch (error) {
-      console.log('Logout error:', error);
+  /* -------------------- Avatar (Human) -------------------- */
+  const [avatarSeed, setAvatarSeed] = useState("");
+
+  useEffect(() => {
+    loadAvatar();
+  }, []);
+
+  const generateSeed = () =>
+    Math.random().toString(36).substring(2, 10);
+
+  const loadAvatar = async () => {
+    const savedSeed = await AsyncStorage.getItem("avatarSeed");
+    if (savedSeed) {
+      setAvatarSeed(savedSeed);
+    } else {
+      const seed = generateSeed();
+      setAvatarSeed(seed);
+      await AsyncStorage.setItem("avatarSeed", seed);
     }
-  }
+  };
+
+  const changeAvatar = async () => {
+    const seed = generateSeed();
+    setAvatarSeed(seed);
+    await AsyncStorage.setItem("avatarSeed", seed);
+  };
+
+  /* -------------------- Theme Animation -------------------- */
+  const rotateAnim = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
   const animateIcon = () => {
     Animated.timing(rotateAnim, {
@@ -46,6 +65,18 @@ export default function Sidebar() {
     outputRange: ["0deg", "180deg"],
   });
 
+  /* -------------------- Logout -------------------- */
+  const Logout = async () => {
+    try {
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("userId");
+      router.replace("/(auth)/Login");
+    } catch (error) {
+      console.log("Logout error:", error);
+    }
+  };
+
+  /* -------------------- Colors -------------------- */
   const bg = isDark ? "#111827" : "#f3f4f6";
   const card = isDark ? "#1f2937" : "#ffffff";
   const text = isDark ? "#ffffff" : "#111827";
@@ -53,21 +84,28 @@ export default function Sidebar() {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-
-      {/* Profile + Theme Toggle */}
+      {/* Profile */}
       <View style={styles.topRow}>
         <View style={{ alignItems: "center", flex: 1 }}>
-          <Image
-            source={{
-              uri: "https://cdn-icons-png.flaticon.com/128/4333/4333609.png",
-            }}
-            style={styles.avatar}
-          />
-          <Text style={[styles.name, { color: text }]}>Prem Kumar</Text>
+          <TouchableOpacity onPress={changeAvatar} activeOpacity={0.85}>
+            <Image
+              source={{
+                uri: `https://api.dicebear.com/7.x/avataaars/png?seed=${avatarSeed}`,
+              }}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
+
+          <Text style={[styles.name, { color: text }]}>
+            Prem Kumar
+          </Text>
         </View>
 
+        {/* Theme Toggle */}
         <TouchableOpacity onPress={toggleTheme} style={styles.themeBtn}>
-          <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+          <Animated.View
+            style={{ transform: [{ rotate: rotateInterpolate }] }}
+          >
             <Ionicons
               name={isDark ? "moon" : "sunny"}
               size={28}
@@ -81,8 +119,14 @@ export default function Sidebar() {
 
       {/* Menu */}
       <View style={styles.menuContainer}>
-        <LinearGradient colors={["#d946ef", "#ec4899"]} style={styles.activeMenu}>
-          <TouchableOpacity onPress={() => router.push("/")} style={{flex: 1}}>
+        <LinearGradient
+          colors={["#d946ef", "#ec4899"]}
+          style={styles.activeMenu}
+        >
+          <TouchableOpacity
+            onPress={() => router.push("/")}
+            style={{ flex: 1 }}
+          >
             <View style={styles.menuRow}>
               <Ionicons name="grid-outline" size={22} color="#fff" />
               <Text style={styles.activeMenuText}>Dashboard</Text>
@@ -95,8 +139,14 @@ export default function Sidebar() {
           onPress={() => router.push("/(main)/Income")}
         >
           <View style={styles.menuRow}>
-            <FontAwesome5 name="dollar-sign" size={20} color="#22c55e" />
-            <Text style={[styles.menuText, { color: text }]}>Income</Text>
+            <FontAwesome5
+              name="dollar-sign"
+              size={20}
+              color="#22c55e"
+            />
+            <Text style={[styles.menuText, { color: text }]}>
+              Income
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -105,8 +155,14 @@ export default function Sidebar() {
           onPress={() => router.push("/(main)/Expanse")}
         >
           <View style={styles.menuRow}>
-            <MaterialIcons name="receipt-long" size={22} color="#f87171" />
-            <Text style={[styles.menuText, { color: text }]}>Expense</Text>
+            <MaterialIcons
+              name="receipt-long"
+              size={22}
+              color="#f87171"
+            />
+            <Text style={[styles.menuText, { color: text }]}>
+              Expense
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -115,7 +171,11 @@ export default function Sidebar() {
           onPress={() => router.push("/(main)/AllTransaction")}
         >
           <View style={styles.menuRow}>
-            <FontAwesome5 name="list-alt" size={20} color="#fb923c" />
+            <FontAwesome5
+              name="list-alt"
+              size={20}
+              color="#fb923c"
+            />
             <Text style={[styles.menuText, { color: text }]}>
               All Transaction
             </Text>
@@ -124,8 +184,11 @@ export default function Sidebar() {
       </View>
 
       {/* Logout */}
-      <TouchableOpacity style={styles.logoutWrapper} onPress={Logout} >
-        <LinearGradient colors={["#f43f5e", "#fb7185"]} style={styles.logoutBtn}>
+      <TouchableOpacity style={styles.logoutWrapper} onPress={Logout}>
+        <LinearGradient
+          colors={["#f43f5e", "#fb7185"]}
+          style={styles.logoutBtn}
+        >
           <Ionicons name="log-out-outline" size={22} color="#fff" />
           <Text style={styles.logoutText}>Logout</Text>
         </LinearGradient>
@@ -134,6 +197,7 @@ export default function Sidebar() {
   );
 }
 
+/* -------------------- Styles -------------------- */
 const styles = StyleSheet.create({
   container: {
     width: 280,
@@ -146,19 +210,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   themeBtn: { padding: 10 },
-  avatar: { width: 90, height: 90, borderRadius: 50 },
-  name: { marginTop: 10, fontSize: 20, fontWeight: "600" },
-  divider: { height: 1, marginVertical: 20 },
+  avatar: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#e5e7eb",
+  },
+  name: {
+    marginTop: 10,
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  divider: {
+    height: 1,
+    marginVertical: 20,
+  },
   menuContainer: { gap: 12 },
-  menuRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  activeMenu: { padding: 15, borderRadius: 12 },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  activeMenu: {
+    padding: 15,
+    borderRadius: 12,
+  },
   activeMenuText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  menuItem: { padding: 15, borderRadius: 12 },
-  menuText: { fontSize: 16, fontWeight: "500" },
+  menuItem: {
+    padding: 15,
+    borderRadius: 12,
+  },
+  menuText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
   logoutWrapper: { marginTop: "auto" },
   logoutBtn: {
     flexDirection: "row",
@@ -168,5 +257,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  logoutText: { color: "#fff", fontSize: 17, fontWeight: "600" },
+  logoutText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "600",
+  },
 });

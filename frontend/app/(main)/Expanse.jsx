@@ -299,9 +299,9 @@ function ExpenseCard({
       </TouchableOpacity>
 
       {/* 🗑️ Delete */}
-      <TouchableOpacity style={[expenseStyles.iconBtn, { marginLeft: 8 }]} onPress={onDelete}>
+      {/* <TouchableOpacity style={[expenseStyles.iconBtn, { marginLeft: 8 }]} onPress={onDelete}>
         <Ionicons name="trash-outline" size={18} color="#ef4444" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
     </View>
   );
