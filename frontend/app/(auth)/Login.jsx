@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,37 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   const router = useRouter();
+
+  // ✅ CHECK IF ALREADY LOGGED IN
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+
+        if (token) {
+          router.replace('/(main)/Dashboard');
+        }
+      } catch (err) {
+        console.log('Auth check error:', err);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // ⏳ Loader while checking auth
+  if (checkingAuth) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#10b981" />
+      </View>
+    );
+  }
 
   const handleSignin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -28,29 +58,34 @@ export default function Login() {
 
     try {
       setLoading(true);
-      
-      const res = await axios.post('https://finance-manager-backend-iyuj.onrender.com/api/auth/login', {
-        email: email.trim(),
-        password: password.trim(),
-      }, {
-        headers: { 'Content-Type': 'application/json' },
-      });
 
-      console.log('✅ Login response:', res.data);
+      const res = await axios.post(
+        'https://finance-manager-backend-iyuj.onrender.com/api/auth/login',
+        {
+          email: email.trim(),
+          password: password.trim(),
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
 
       if (res.status !== 200) {
         Alert.alert('Error', res.data?.message || 'Login failed');
         return;
       }
 
-      if (res.data.token) {await AsyncStorage.setItem('token', res.data.token); }
-      if (res.data.user?.id) {  await AsyncStorage.setItem('userId', res.data.user.id); }
+      if (res.data.token) {
+        await AsyncStorage.setItem('token', res.data.token);
+      }
 
-      console.log('✅ Tokens saved, redirecting...');
+      if (res.data.user?.id) {
+        await AsyncStorage.setItem('userId', res.data.user.id);
+      }
+
       router.replace('/(main)/Dashboard');
-      
+
     } catch (err) {
-      console.log('❌ Login error:', err.response?.data || err.message);
       const message = err?.response?.data?.message || 'Something went wrong.';
       Alert.alert('Login Failed', message);
     } finally {
@@ -68,7 +103,6 @@ export default function Login() {
 
       <Text style={styles.heading}>Sign in to your account</Text>
 
-      {/* Email Field */}
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
@@ -80,7 +114,6 @@ export default function Login() {
         autoCapitalize="none"
       />
 
-      {/* Password Field */}
       <Text style={styles.label}>Password</Text>
       <TextInput
         style={styles.input}
@@ -92,29 +125,23 @@ export default function Login() {
         autoCapitalize="none"
       />
 
-      {/* Sign In Button */}
       <TouchableOpacity
-        style={[
-          styles.signInBtn,
-          loading && styles.disabledBtn
-        ]}
+        style={[styles.signInBtn, loading && styles.disabledBtn]}
         onPress={handleSignin}
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" size="small" />
+          <ActivityIndicator color="#fff" />
         ) : (
           <Text style={styles.signInBtnText}>Sign In</Text>
         )}
       </TouchableOpacity>
 
-      {/* Google OAuth */}
       <TouchableOpacity style={styles.googleBtn}>
-        <Ionicons name="logo-google" size={22} color="#4285F4" style={{ marginRight: 8 }} />
+        <Ionicons name="logo-google" size={22} color="#4285F4" />
         <Text style={styles.googleBtnText}>Sign in with Google</Text>
       </TouchableOpacity>
 
-      {/* Sign Up Link */}
       <Text style={styles.bottomText}>
         Don't have an account?{' '}
         <Link href="/Signup" asChild>
@@ -133,24 +160,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 22,
   },
-  logo: {
-    width: 60,
-    height: 60,
-    marginBottom: 24,
-  },
+  logo: { width: 60, height: 60, marginBottom: 24 },
   heading: {
     fontSize: 24,
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: 32,
-    textAlign: 'center',
   },
   label: {
     alignSelf: 'flex-start',
     fontSize: 14,
     color: '#334155',
     marginBottom: 8,
-    marginTop: 0,
   },
   input: {
     width: '100%',
@@ -159,7 +180,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: '#1e293b',
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -170,23 +190,14 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 6,
     marginBottom: 19,
-    elevation: 2,
   },
-  disabledBtn: {
-    backgroundColor: '#6b7280',
-  },
-  signInBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  disabledBtn: { backgroundColor: '#6b7280' },
+  signInBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   googleBtn: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 8,
-    elevation: 2,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
@@ -195,17 +206,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  googleBtnText: {
-    color: '#1e293b',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  bottomText: {
-    color: '#334155',
-    fontSize: 15,
-    marginTop: 10,
-    textAlign: 'center',
-  },
+  googleBtnText: { fontWeight: '600', fontSize: 15 },
+  bottomText: { fontSize: 15 },
   signUpLink: {
     color: '#10b981',
     fontWeight: '700',
